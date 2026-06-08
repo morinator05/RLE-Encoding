@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define CHUNK_MAX_VAL 0b111111
+#define LARGE_BLOCK_MAX_VAL 0b111111
 
 typedef struct RLENode {
     uint64_t count;
@@ -208,10 +208,10 @@ char *serialize_rle(RLE *rle, size_t *size) {
             bit_count += 4;
         } else {
             //long encoding
-            uint8_t chunk_bit_count = CHUNK_MAX_VAL;
+            uint8_t chunk_bit_count = LARGE_BLOCK_MAX_VAL;
             while (current_bit_count > 0) {
-                if (current_bit_count > CHUNK_MAX_VAL) {
-                    current_bit_count -= CHUNK_MAX_VAL;
+                if (current_bit_count > LARGE_BLOCK_MAX_VAL) {
+                    current_bit_count -= LARGE_BLOCK_MAX_VAL;
                 } else {
                     chunk_bit_count = current_bit_count;
                     current_bit_count = 0;
@@ -222,7 +222,6 @@ char *serialize_rle(RLE *rle, size_t *size) {
             }
         }
         current_bit ^= 1; //switch between 0 and 1
-
         //write buffer to output, while there are bytes to write
         while (bit_count >= 8) {
             output[byte_index] = (char) (bit_buffer >> (bit_count - 8));
@@ -230,12 +229,10 @@ char *serialize_rle(RLE *rle, size_t *size) {
             bit_count -= 8;
         }
     }
-
     //write remaining buffer
     if (bit_count > 0) {
         output[byte_index++] = (char) (bit_buffer << (8 - bit_count));
     }
-
     *size = byte_index * sizeof(char);
     return output;
 }
