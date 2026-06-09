@@ -251,11 +251,11 @@ void deserialize_rle(RLE *rle, const char *data, size_t size) {
     uint8_t encoding_bit = 0;
     uint8_t current_val = 0;
 
-    while (current_byte <= size) {
+    while (current_buffer_size > 0 || current_byte < size) {
         printf("-------------\n");
 
         //Fill the buffer if it is empty
-        if (current_buffer_size < 8) {
+        if (current_buffer_size < 8 && current_byte < size) {
             bit_buffer = bit_buffer << 8 | (data[current_byte++] & 0xFF);
             current_buffer_size += 8;
         }
