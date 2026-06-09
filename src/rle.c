@@ -221,11 +221,11 @@ char* serialize_rle(RLE* rle, size_t* size)
     uint8_t current_bit = 0;
     uint64_t current_bit_count = 0;
 
-    uint64_t byte_index = 0;
+    size_t byte_index = 0;
     uint32_t bit_count = 0;
     uint32_t bit_buffer = 0;
 
-    //if there are no 0's at the start, the sequence starts with 1
+    //If there are no 0's at the start, the sequence starts with 1
     if (rle->head->count == 0)
     {
         current_bit ^= 1;
@@ -236,14 +236,14 @@ char* serialize_rle(RLE* rle, size_t* size)
     {
         if (current_bit_count <= 3)
         {
-            //short encoding
+            //Short encoding
             uint8_t block = (current_bit << 3) | (0 << 2) | (current_bit_count & 0x03);
             bit_buffer = (bit_buffer << 4) | block;
             bit_count += 4;
         }
         else
         {
-            //long encoding
+            //Long encoding
             uint8_t chunk_bit_count = LARGE_BLOCK_MAX_VAL;
             while (current_bit_count > 0)
             {
@@ -261,8 +261,9 @@ char* serialize_rle(RLE* rle, size_t* size)
                 bit_count += 8;
             }
         }
-        current_bit ^= 1; //switch between 0 and 1
-        //write buffer to output, while there are bytes to write
+        current_bit ^= 1; //Switch between 0 and 1
+
+        //Write buffer to output, while there are bytes to write
         while (bit_count >= 8)
         {
             output[byte_index] = (char)(bit_buffer >> (bit_count - 8));
@@ -270,65 +271,70 @@ char* serialize_rle(RLE* rle, size_t* size)
             bit_count -= 8;
         }
     }
+
     //write remaining buffer
     if (bit_count > 0)
     {
         output[byte_index++] = (char)(bit_buffer << (8 - bit_count));
     }
+
     *size = byte_index * sizeof(char);
     return output;
 }
 
 void deserialize_rle(RLE* rle, const char* data, size_t size)
 {
-    rle = create_rle();
-
+    //Buffer
     uint32_t bit_buffer = 0;
     uint8_t current_buffer_size = 0;
-
+    size_t current_byte = 0;
+    //
     uint8_t previous_bit = 0;
     uint8_t current_bit = 0;
-    bool long_encoding = false;
+    uint8_t encoding_bit = 0;
     uint8_t current_val = 0;
 
-    size_t current_byte = 0;
-
-    while (current_byte < size)
+    while (current_byte <= size)
     {
+        printf("-------------\n");
+
+        //Fill the buffer if it is empty
         if (current_buffer_size < 8)
         {
-            bit_buffer = (bit_buffer << 8) | data[current_byte++];
+            bit_buffer = bit_buffer << 8 | (data[current_byte++] & 0xFF);
             current_buffer_size += 8;
         }
+        printf("current buffer (%d bit): %b\n", current_buffer_size, bit_buffer);
 
-        current_bit = bit_buffer >> ((current_buffer_size - 1)) & 1;
-        printf("bit: %x\n", current_bit);
-
+        //If the bit changed during the last iteration, write the value and reset
         if (current_bit != previous_bit)
         {
+            printf("appending (%d), %d times\n", current_bit, current_val);
             append_to_rle(rle, current_val);
             current_val = 0;
             previous_bit = current_bit;
         }
 
-        long_encoding = (bool)(bit_buffer >> (current_buffer_size - 2)) & 1;
-        printf("type: %d\n", long_encoding);
+        //Read bit
+        current_bit = bit_buffer >> (current_buffer_size - 1) & 1;
+        printf("bit: %x\n", current_bit);
+        //Read encoding bit
+        encoding_bit = bit_buffer >> (current_buffer_size - 2) & 1;
+        printf("type: %d\n", encoding_bit);
 
-        if (!long_encoding)
+        //Read the corresponding encoding value
+        if (encoding_bit == 0)
         {
-            current_val += (int)bit_buffer << (current_buffer_size - 4) & 3;
-            bit_buffer = bit_buffer << 4;
+            current_val += bit_buffer >> (current_buffer_size - 4) & 3;
             current_buffer_size -= 4;
         }
         else
         {
-            current_val += (int)bit_buffer << (current_buffer_size - 6) & LARGE_BLOCK_MAX_VAL;
-            bit_buffer = bit_buffer << 8;
+            current_val += bit_buffer >> (current_buffer_size - 8) & LARGE_BLOCK_MAX_VAL;
             current_buffer_size -= 8;
         }
-
         printf("current val: %d\n", current_val);
-
     }
+    printf("-------------\n");
 
 }
