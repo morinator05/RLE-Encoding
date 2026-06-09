@@ -4,31 +4,25 @@
 
 #define LARGE_BLOCK_MAX_VAL 0b111111
 
-typedef struct RLENode
-{
+typedef struct RLENode {
     uint64_t count;
-    struct RLENode* next;
+    struct RLENode *next;
 } RLENode;
 
-struct RLE
-{
-    RLENode* head;
-    RLENode* tail;
+struct RLE {
+    RLENode *head;
+    RLENode *tail;
     uint64_t size;
 };
 
-static void append_to_rle(RLE* rle, uint64_t count)
-{
-    RLENode* node = malloc(sizeof(RLENode));
+static void append_to_rle(RLE *rle, uint64_t count) {
+    RLENode *node = malloc(sizeof(RLENode));
     node->count = count;
     node->next = NULL;
 
-    if (rle->tail)
-    {
+    if (rle->tail) {
         rle->tail->next = node;
-    }
-    else
-    {
+    } else {
         rle->head = node;
     }
 
@@ -43,9 +37,8 @@ static void append_to_rle(RLE* rle, uint64_t count)
  * initialized with an entry.
  * @return a pointer to the RLE data structure
  */
-RLE* create_rle()
-{
-    RLE* rle = malloc(sizeof(RLE));
+RLE *create_rle() {
+    RLE *rle = malloc(sizeof(RLE));
     rle->head = NULL;
     rle->tail = NULL;
     rle->size = 0;
@@ -60,31 +53,26 @@ RLE* create_rle()
  * should be called when the RLE data structure is no longer needed.
  * @param rle the RLE data structure to delete
  */
-void delete_rle(RLE* rle)
-{
-    RLENode* node = rle->head;
-    while (node)
-    {
-        RLENode* next = node->next;
+void delete_rle(RLE *rle) {
+    RLENode *node = rle->head;
+    while (node) {
+        RLENode *next = node->next;
         free(node);
         node = next;
     }
     free(rle);
 }
 
-static bool pop_head_rle(RLE* rle, uint64_t* count)
-{
-    if (!rle->head)
-    {
+static bool pop_head_rle(RLE *rle, uint64_t *count) {
+    if (!rle->head) {
         return false;
     }
 
-    RLENode* node = rle->head;
+    RLENode *node = rle->head;
     *count = node->count;
 
     rle->head = node->next;
-    if (rle->tail == node)
-    {
+    if (rle->tail == node) {
         rle->tail = NULL;
     }
 
@@ -94,12 +82,10 @@ static bool pop_head_rle(RLE* rle, uint64_t* count)
     return true;
 }
 
-static uint64_t get_rle_total_count(RLE* rle)
-{
+static uint64_t get_rle_total_count(RLE *rle) {
     uint64_t total = 0;
-    RLENode* node = rle->head;
-    while (node)
-    {
+    RLENode *node = rle->head;
+    while (node) {
         total += node->count;
         node = node->next;
     }
@@ -124,21 +110,15 @@ static uint64_t get_rle_total_count(RLE* rle)
  * @param data Source data, treated as binary data
  * @param size Size of the source data
  */
-void encode_rle(RLE* rle, const char* data, size_t size)
-{
+void encode_rle(RLE *rle, const char *data, size_t size) {
     uint8_t counting_bit = (rle->size & 1) ^ 1;
 
-    for (size_t i = 0; i < size; i++)
-    {
-        for (int8_t j = 7; j >= 0; j--)
-        {
+    for (size_t i = 0; i < size; i++) {
+        for (int8_t j = 7; j >= 0; j--) {
             uint8_t current_bit = (data[i] >> j) & 1;
-            if (current_bit == counting_bit)
-            {
+            if (current_bit == counting_bit) {
                 rle->tail->count++;;
-            }
-            else
-            {
+            } else {
                 append_to_rle(rle, 1);
                 counting_bit ^= 1; // Switch between 0 and 1
             }
@@ -154,14 +134,12 @@ void encode_rle(RLE* rle, const char* data, size_t size)
  * @param size will be set by this function and is the size of the returned data
  * @return binary data
  */
-char* decode_rle(RLE* rle, size_t* size)
-{
+char *decode_rle(RLE *rle, size_t *size) {
     uint64_t total_bits = get_rle_total_count(rle);
     *size = (total_bits + 7) >> 3; // Round up to the nearest byte
 
-    char* output = calloc(*size, sizeof(char));
-    if (!output)
-    {
+    char *output = calloc(*size, sizeof(char));
+    if (!output) {
         return NULL;
     }
 
@@ -171,18 +149,13 @@ char* decode_rle(RLE* rle, size_t* size)
     uint8_t bit = 0;
     uint8_t bit_index = 7;
 
-    while (byte_index < *size && pop_head_rle(rle, &count))
-    {
-        while (count > 0)
-        {
+    while (byte_index < *size && pop_head_rle(rle, &count)) {
+        while (count > 0) {
             output[byte_index] |= bit << bit_index;
-            if (bit_index == 0)
-            {
+            if (bit_index == 0) {
                 byte_index++;
                 bit_index = 7;
-            }
-            else
-            {
+            } else {
                 bit_index--;
             }
             count--;
@@ -193,17 +166,14 @@ char* decode_rle(RLE* rle, size_t* size)
     return output;
 }
 
-void print_rle(RLE* rle, uint8_t counts_per_line)
-{
-    RLENode* node = rle->head;
+void print_rle(RLE *rle, uint8_t counts_per_line) {
+    RLENode *node = rle->head;
     printf("{\n");
     int counter = 0;
-    while (node)
-    {
+    while (node) {
         printf("  %lu", node->count);
         if (node->next) printf(", "); // print comma only if this isn't the last node
-        if (counts_per_line > 0 && ++counter >= counts_per_line)
-        {
+        if (counts_per_line > 0 && ++counter >= counts_per_line) {
             printf("\n");
             counter = 0;
         }
@@ -214,9 +184,8 @@ void print_rle(RLE* rle, uint8_t counts_per_line)
     printf("\n");
 }
 
-char* serialize_rle(RLE* rle, size_t* size)
-{
-    char* output = malloc(get_rle_total_count(rle) * 2); //get enough memory for the output
+char *serialize_rle(RLE *rle, size_t *size) {
+    char *output = malloc(get_rle_total_count(rle) * 2); //get enough memory for the output
 
     uint8_t current_bit = 0;
     uint64_t current_bit_count = 0;
@@ -226,33 +195,24 @@ char* serialize_rle(RLE* rle, size_t* size)
     uint32_t bit_buffer = 0;
 
     //If there are no 0's at the start, the sequence starts with 1
-    if (rle->head->count == 0)
-    {
+    if (rle->head->count == 0) {
         current_bit ^= 1;
         pop_head_rle(rle, &current_bit_count);
     }
 
-    while (pop_head_rle(rle, &current_bit_count))
-    {
-        if (current_bit_count <= 3)
-        {
+    while (pop_head_rle(rle, &current_bit_count)) {
+        if (current_bit_count <= 3) {
             //Short encoding
             uint8_t block = (current_bit << 3) | (0 << 2) | (current_bit_count & 0x03);
             bit_buffer = (bit_buffer << 4) | block;
             bit_count += 4;
-        }
-        else
-        {
+        } else {
             //Long encoding
             uint8_t chunk_bit_count = LARGE_BLOCK_MAX_VAL;
-            while (current_bit_count > 0)
-            {
-                if (current_bit_count > LARGE_BLOCK_MAX_VAL)
-                {
+            while (current_bit_count > 0) {
+                if (current_bit_count > LARGE_BLOCK_MAX_VAL) {
                     current_bit_count -= LARGE_BLOCK_MAX_VAL;
-                }
-                else
-                {
+                } else {
                     chunk_bit_count = current_bit_count;
                     current_bit_count = 0;
                 }
@@ -264,26 +224,23 @@ char* serialize_rle(RLE* rle, size_t* size)
         current_bit ^= 1; //Switch between 0 and 1
 
         //Write buffer to output, while there are bytes to write
-        while (bit_count >= 8)
-        {
-            output[byte_index] = (char)(bit_buffer >> (bit_count - 8));
+        while (bit_count >= 8) {
+            output[byte_index] = (char) (bit_buffer >> (bit_count - 8));
             byte_index++;
             bit_count -= 8;
         }
     }
 
     //write remaining buffer
-    if (bit_count > 0)
-    {
-        output[byte_index++] = (char)(bit_buffer << (8 - bit_count));
+    if (bit_count > 0) {
+        output[byte_index++] = (char) (bit_buffer << (8 - bit_count));
     }
 
     *size = byte_index * sizeof(char);
     return output;
 }
 
-void deserialize_rle(RLE* rle, const char* data, size_t size)
-{
+void deserialize_rle(RLE *rle, const char *data, size_t size) {
     //Buffer
     uint32_t bit_buffer = 0;
     uint8_t current_buffer_size = 0;
@@ -294,21 +251,18 @@ void deserialize_rle(RLE* rle, const char* data, size_t size)
     uint8_t encoding_bit = 0;
     uint8_t current_val = 0;
 
-    while (current_byte <= size)
-    {
+    while (current_byte <= size) {
         printf("-------------\n");
 
         //Fill the buffer if it is empty
-        if (current_buffer_size < 8)
-        {
+        if (current_buffer_size < 8) {
             bit_buffer = bit_buffer << 8 | (data[current_byte++] & 0xFF);
             current_buffer_size += 8;
         }
         printf("current buffer (%d bit): %b\n", current_buffer_size, bit_buffer);
 
         //If the bit changed during the last iteration, write the value and reset
-        if (current_bit != previous_bit)
-        {
+        if (current_bit != previous_bit) {
             printf("appending (%d), %d times\n", current_bit, current_val);
             append_to_rle(rle, current_val);
             current_val = 0;
@@ -323,18 +277,14 @@ void deserialize_rle(RLE* rle, const char* data, size_t size)
         printf("type: %d\n", encoding_bit);
 
         //Read the corresponding encoding value
-        if (encoding_bit == 0)
-        {
+        if (encoding_bit == 0) {
             current_val += bit_buffer >> (current_buffer_size - 4) & 3;
             current_buffer_size -= 4;
-        }
-        else
-        {
+        } else {
             current_val += bit_buffer >> (current_buffer_size - 8) & LARGE_BLOCK_MAX_VAL;
             current_buffer_size -= 8;
         }
         printf("current val: %d\n", current_val);
     }
     printf("-------------\n");
-
 }
