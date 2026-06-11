@@ -4,6 +4,8 @@
 #include <stddef.h>
 #include <stdbool.h>
 
+extern bool optimized;
+
 typedef struct RLE RLE;
 
 RLE* create_rle();

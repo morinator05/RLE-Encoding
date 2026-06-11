@@ -7,16 +7,21 @@
 #include <sys/stat.h>
 #include "../include/rle.h"
 
+bool optimized = false;
 
 // Forward declarations
 off_t get_file_size(int fd);
-char* get_compressed_file_path(const char *filePath);
-char* get_decompressed_file_path(const char *filePath);
+
+char *get_compressed_file_path(const char *filePath);
+
+char *get_decompressed_file_path(const char *filePath);
 
 // Type definitions
-typedef void (*FirstOperation)(RLE* rle, const char* data, size_t size);
-typedef char* (*SecondOperation)(RLE* rle, size_t* size);
-typedef char* (*FilePathFunction)(const char *);
+typedef void (*FirstOperation)(RLE *rle, const char *data, size_t size);
+
+typedef char * (*SecondOperation)(RLE *rle, size_t *size);
+
+typedef char * (*FilePathFunction)(const char *);
 
 // The operation enum
 typedef enum {
@@ -27,29 +32,34 @@ typedef enum {
 
 // These operations are used to fill up the RLE data structure
 FirstOperation PrepareOutputOperation[OPERATION_COUNT] = {
-        encode_rle,
-        deserialize_rle
+    encode_rle,
+    deserialize_rle,
 };
 
 // These operations are used to create the final output data
 SecondOperation FinalizeOutputOperation[OPERATION_COUNT] = {
-        serialize_rle,
-        decode_rle
+    serialize_rle,
+    decode_rle
 };
 
 // These operations are used to create the final output data
 FilePathFunction OutputFilePath[OPERATION_COUNT] = {
-        get_compressed_file_path,
-        get_decompressed_file_path
+    get_compressed_file_path,
+    get_decompressed_file_path
 };
 
-int main (int argc, char *argv[] ) {
-    if (argc < 2 || argc > 3) {
-        printf("Usage: %s <filepath> [operation]\n", argv[0]);
-        printf("operation: '-d' for decompress, '-c' for compression (default)\n");
-        return 1;
+int main(int argc, char *argv[]) {
+    Operation op = COMPRESS;
+    optimized = false;
+
+    for (int i = 2; i < argc; i++) {
+        if (strcmp(argv[i], "-d") == 0) {
+            op = DECOMPRESS;
+        }
+        else if (strcmp(argv[i], "-o") == 0) {
+            optimized = true;
+        }
     }
-    Operation op = (argc == 3) && (strcmp(argv[2], "-d") == 0) ? DECOMPRESS : COMPRESS;
 
     char* path = argv[1];
     int fd = open(path, O_RDONLY);
