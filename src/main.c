@@ -7,7 +7,8 @@
 #include <sys/stat.h>
 #include "../include/rle.h"
 
-bool optimized = false;
+bool optimized;
+bool verbose;
 
 // Forward declarations
 off_t get_file_size(int fd);
@@ -50,7 +51,7 @@ FilePathFunction OutputFilePath[OPERATION_COUNT] = {
 
 int main(int argc, char *argv[]) {
 
-    if (argc < 2 || argc > 4) {
+    if (argc < 2 || argc > 5) {
         printf("Usage: %s <filepath> [flags]\n", argv[0]);
         printf("flags: '-c' for compression (default), '-d' for decompress, '-o' for optimized compression\n");
         return 1;
@@ -65,6 +66,10 @@ int main(int argc, char *argv[]) {
         }
         else if (strcmp(argv[i], "-o") == 0) {
             optimized = true;
+        }
+        else if (strcmp(argv[i], "-v") == 0)
+        {
+            verbose = true;
         }
     }
 
@@ -102,8 +107,8 @@ int main(int argc, char *argv[]) {
     PrepareOutputOperation[op](rle, buffer, bytes_read);;
     free(buffer);
 
-    printf("RLE counts:\n");
-    print_rle(rle, 1);
+    if (verbose) printf("RLE counts:\n");
+    if (verbose) print_rle(rle, 1);
 
     char* outPath = OutputFilePath[op](path);
     fd = open(outPath, O_CREAT | O_WRONLY | O_TRUNC, 0644);
@@ -129,7 +134,7 @@ int main(int argc, char *argv[]) {
     free(data);
     delete_rle(rle);
 
-    printf("Done.\n");
+    if (verbose) printf("Done.\n");
 
     return 0;
 }

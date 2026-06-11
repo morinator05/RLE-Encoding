@@ -200,11 +200,11 @@ char *serialize_rle(RLE *rle, size_t *size) {
     if (rle->head->count == 0) {
         current_bit ^= 1;
         pop_head_rle(rle, &current_bit_count);
-        printf("skipping first bit, starts with '1', ");
+        if (verbose) printf("skipping first bit, starts with '1', ");
     }
 
     while (pop_head_rle(rle, &current_bit_count)) {
-        if (!optimized) printf("added: %d bits of '%x' \n", (int)current_bit_count, current_bit & 1);
+        if (!optimized && verbose) printf("added: %d bits of '%x' \n", (int)current_bit_count, current_bit & 1);
 
         //if optimized adjust the value.
         if (optimized && current_bit == 1 && current_bit_count < 5) {
@@ -270,7 +270,7 @@ void deserialize_rle(RLE *rle, const char *data, size_t size) {
 
     uint8_t previous_bit = data[0] >> 7 & 1;
     uint8_t current_bit = previous_bit;
-    printf("bit: %x\n", previous_bit);
+    if (verbose) printf("bit: %x\n", previous_bit);
 
     uint8_t encoding_bit = 0;
     uint64_t current_val = 0;
@@ -278,25 +278,25 @@ void deserialize_rle(RLE *rle, const char *data, size_t size) {
     bool first_iteration = true;
 
     while (current_buffer_size > 0 || current_byte < size) {
-        printf("-------------\n");
+        if (verbose)printf("-------------\n");
 
         //Fill the buffer if it is empty
         if (current_buffer_size < 8 && current_byte < size) {
             bit_buffer = bit_buffer << 8 | (data[current_byte++] & 0xFF);
             current_buffer_size += 8;
         }
-        printf("current buffer (%d bit): %b\n", current_buffer_size, bit_buffer);
+        if (verbose) printf("current buffer (%d bit): %b\n", current_buffer_size, bit_buffer);
 
         //Read bit
         current_bit = bit_buffer >> (current_buffer_size - 1) & 1;
-        printf("bit: %x\n", current_bit);
+        if (verbose) printf("bit: %x\n", current_bit);
         //Read encoding bit
         encoding_bit = bit_buffer >> (current_buffer_size - 2) & 1;
-        printf("type: %d\n", encoding_bit);
+        if (verbose) printf("type: %d\n", encoding_bit);
 
         //If the bit changed during the last iteration, write the value and reset
         if (current_bit != previous_bit) {
-            printf("appending (%d), %d times\n", previous_bit, current_val);
+            if (verbose) printf("appending (%d), %d times\n", previous_bit, current_val);
             if (first_iteration && previous_bit == 0) {
                 rle->head->count = current_val;
             } else {
@@ -320,15 +320,15 @@ void deserialize_rle(RLE *rle, const char *data, size_t size) {
             current_val += bit_buffer >> (current_buffer_size - 8) & LARGE_BLOCK_MAX_VAL;
             current_buffer_size -= 8;
         }
-        printf("current val: %d\n", current_val);
+        if (verbose) printf("current val: %d\n", current_val);
 
     }
 
     //if there is stuff left over add it
     if (current_val != 0) {
-        printf("appending (%d), %d times\n", current_bit, current_val);
+        if (verbose) printf("appending (%d), %d times\n", current_bit, current_val);
         append_to_rle(rle, current_val);
     }
 
-    printf("-------------\n");
+    if (verbose) printf("-------------\n");
 }

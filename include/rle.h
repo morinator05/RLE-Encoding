@@ -5,6 +5,7 @@
 #include <stdbool.h>
 
 extern bool optimized;
+extern bool verbose;
 
 typedef struct RLE RLE;
 
