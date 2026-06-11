@@ -204,13 +204,27 @@ char *serialize_rle(RLE *rle, size_t *size) {
     }
 
     while (pop_head_rle(rle, &current_bit_count)) {
-        printf("adding: %d bits, ", (int)current_bit_count);
+        if (!optimized) printf("added: %d bits of '%x' \n", (int)current_bit_count, current_bit & 1);
+
+        //if optimized adjust the value.
+        if (optimized && current_bit == 1 && current_bit_count < 5) {
+            current_bit_count -= 1;
+        }
+
         if (current_bit_count <= 3) {
             //Short encoding
             uint8_t block = (current_bit << 3) | (0 << 2) | (current_bit_count & 0x03);
             bit_buffer = (bit_buffer << 4) | block;
             bit_count += 4;
         } else {
+
+            //if optimized adjust the value.
+            if (optimized && current_bit == 1 && current_bit_count > 4) {
+                current_bit_count -= 5;
+            } else if (optimized && current_bit == 0 && current_bit_count > 4) {
+                current_bit_count -= 4;
+            }
+
             //Long encoding
             uint8_t chunk_bit_count = LARGE_BLOCK_MAX_VAL;
             while (current_bit_count > 0) {
@@ -226,6 +240,7 @@ char *serialize_rle(RLE *rle, size_t *size) {
                 byte_index++;
             }
         }
+
         current_bit ^= 1; //Switch between 0 and 1
 
         //Write buffer to output, while there are bytes to write
