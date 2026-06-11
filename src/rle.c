@@ -307,9 +307,12 @@ void deserialize_rle(RLE *rle, const char *data, size_t size) {
 
         //Read the corresponding encoding value
         if (encoding_bit == 0) {
+            if (optimized && previous_bit == 1) current_val++;
             current_val += bit_buffer >> (current_buffer_size - 4) & 3;
             current_buffer_size -= 4;
         } else {
+            if (optimized && current_bit == 0) current_val += 4;
+            else if (optimized && previous_bit == 1) current_val += 5;
             current_val += bit_buffer >> (current_buffer_size - 8) & LARGE_BLOCK_MAX_VAL;
             current_buffer_size -= 8;
         }
