@@ -49,6 +49,13 @@ FilePathFunction OutputFilePath[OPERATION_COUNT] = {
 };
 
 int main(int argc, char *argv[]) {
+
+    if (argc < 2 || argc > 4) {
+        printf("Usage: %s <filepath> [flags]\n", argv[0]);
+        printf("flags: '-c' for compression (default), '-d' for decompress, '-o' for optimized compression\n");
+        return 1;
+    }
+
     Operation op = COMPRESS;
     optimized = false;
 
