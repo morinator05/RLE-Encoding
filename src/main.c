@@ -52,8 +52,15 @@ FilePathFunction OutputFilePath[OPERATION_COUNT] = {
 int main(int argc, char *argv[]) {
 
     if (argc < 2 || argc > 5) {
-        printf("Usage: %s <filepath> [flags]\n", argv[0]);
-        printf("flags: '-c' for compression (default), '-d' for decompress, '-o' for optimized compression\n");
+        printf("Usage: %s <filepath> [options]\n\n", argv[0]);
+        printf("mode options:\n"
+               "-c compress (default)\n"
+               "-d decompress\n"
+               "\n"
+               "additional options:\n"
+               "-o optimized compression\n"
+               "-v be verbose\n"
+               "\n");
         return 1;
     }
 
