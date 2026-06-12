@@ -59,8 +59,7 @@ int main(int argc, char *argv[]) {
                "\n"
                "additional options:\n"
                "-o optimized compression\n"
-               "-v be verbose\n"
-               "\n");
+               "-v be verbose\n");
         return 1;
     }
 
